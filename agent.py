@@ -105,7 +105,7 @@ class Agent(BaseModel):
         self.memory.add(prestate, state, reward, action) # add the state and the action and the reward to the memory
         #print(self.step)
         if self.step > 0:
-            if self.step % 20 == 0:
+            if self.step % 50 == 0:
                 #print('Training')
                 self.q_learning_mini_batch()            # training a mini batch
                 self.save_weight_to_pkl()
@@ -125,7 +125,7 @@ class Agent(BaseModel):
         time_steps = []
 
         self.env.new_random_game(20)
-        for self.step in (range(0, 1000)): # need more configuration
+        for self.step in (range(0, 2000)): # need more configuration
             if self.step == 0:                   # initialize set some varibles
                 num_game, self.update_count,ep_reward = 0, 0, 0.
                 total_reward, self.total_loss, self.total_q = 0., 0., 0.
@@ -133,7 +133,7 @@ class Agent(BaseModel):
 
             # prediction
             # action = self.predict(self.history.get())
-            if (self.step % 1000 == 1):
+            if (self.step % 2000 == 1):
                 self.env.new_random_game(20)
             print(self.step)
             state_old = self.get_state([0,0])
@@ -152,7 +152,7 @@ class Agent(BaseModel):
                         self.observe(state_old, state_new, reward_train, action)
                         # Store raw V2I rate
                         self.raw_v2i_rates_over_time.append(raw_V2I_rate)
-            if (self.step % 1000 == 0) and (self.step > 0):
+            if (self.step % 2000 == 0) and (self.step > 0):
                 # testing 
                 self.training = False
                 number_of_game = 10
@@ -164,7 +164,7 @@ class Agent(BaseModel):
                 Fail_percent_list = np.zeros(number_of_game)
                 for game_idx in range(number_of_game):
                     self.env.new_random_game(self.num_vehicle)
-                    test_sample = 25
+                    test_sample = 50
                     Rate_list = []
                     print('test game idx:', game_idx)
                     for k in range(test_sample):
@@ -199,7 +199,7 @@ class Agent(BaseModel):
 
         # After training, plot and save the graphs
         # self.plot_v2i_rate_vs_time(v2i_rates_over_time, time_steps)
-        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=1000, interval=250)
+        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=2000, interval=250)
                   
     def q_learning_mini_batch(self):
 
@@ -344,6 +344,8 @@ class Agent(BaseModel):
         plt.xlabel("Platoon Size", fontsize=14)  # Larger font size for readability
         plt.ylabel("Power Selection Probability", fontsize=14)
         plt.title("Power Selection Probability vs. Platoon Size", fontsize=16, fontweight='bold')
+        plt.xticks([2, 4, 5, 8, 10, 20])  # Set the x-ticks
+        # plt.ylim(0.15,0.80)
         plt.legend(fontsize=12)  # Larger legend for better readability
         plt.grid(True, linestyle='--', alpha=0.7)  # Adding dashed gridlines with some transparency
         plt.tight_layout()  # Ensuring that the layout fits well in the figure
@@ -377,6 +379,7 @@ class Agent(BaseModel):
         x_values = np.arange(num_intervals) * interval + (interval / 2)  # Midpoint of each interval
 
         plt.plot(x_values, mean_raw_v2i_rates, 'r-', marker='o')
+        plt.ylim(10,70)
         plt.xlabel('Time Step')
         plt.ylabel('Mean Raw V2I Rate (bps)')
         plt.title('Mean Raw V2I Rate vs Time (250-step intervals)')
@@ -416,7 +419,7 @@ class Agent(BaseModel):
         
         for game_idx in range(number_of_game):
             self.env.new_random_game(self.num_vehicle)
-            test_sample = 25
+            test_sample = 50
             Rate_list = []
             print('test game idx:', game_idx)
             print('The number of vehicle is ', len(self.env.vehicles))

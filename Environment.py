@@ -115,7 +115,7 @@ class Vehicle:
 class Environ:
     # Enviroment Simulator: Provide states and rewards to agents. 
     # Evolve to new state based on the actions taken by the vehicles.
-    def __init__ (self, left_lane, right_lane, width, height):
+    def __init__ (self, left_lane, right_lane, width, height, n_Veh=40):
         self.timestep = 0.01
         # self.down_lanes = down_lane
         # self.up_lanes = up_lane
@@ -140,7 +140,7 @@ class Environ:
         self.V2I_Shadowing = []
         self.delta_distance = []
         self.n_RB = 20
-        self.n_Veh = 40
+        self.n_Veh = n_Veh
         self.V2Vchannels = V2Vchannels(self.n_Veh, self.n_RB)  # number of vehicles
         self.V2Ichannels = V2Ichannels(self.n_Veh, self.n_RB)
         self.platoon_sizes = [2, 4, 5, 8, 10, 20]  # Define various platoon sizes
@@ -220,13 +220,13 @@ class Environ:
                                 self.vehicles[i].position = [self.vehicles[i].position[0],self.left_lanes[0]]
                 
             i += 1
-    def test_channel(self):
+    def test_channel(self,n_Veh=40):
         # ===================================
         #   test the V2I and the V2V channel 
         # ===================================
         self.n_step = 0
         self.vehicles = []
-        n_Veh = 40
+        # n_Veh = 30
         self.n_Veh = n_Veh
         self.add_new_vehicles_by_number(int(self.n_Veh/2))
         step = 1000
