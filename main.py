@@ -60,12 +60,18 @@ def main(_):
             agent = Agent([], Env, sess)  # Initialize the agent
             agent.train()  # Train the agent
             agent.play()  # Play the game after training
+            
+            vehicle_counts = [30, 40, 50]  # Define the vehicle counts you want to test
+            agent.plot_power_vs_vehicle_count(vehicle_counts)  # Call the new method to plot power selection probabilities
 
             # Collect the raw V2I rates
             raw_v2i_rates_all[n_vehicles] = agent.raw_v2i_rates_over_time
 
     # Now we plot the raw V2I rates for each vehicle count
     plt.figure(figsize=(10, 6))
+    # Define the maximum x value you want to plot
+    max_x_value = 1000
+    max_interval_index = max_x_value // 250  # Calculate how many intervals fit within the max x value
 
     for n_vehicles, raw_v2i_rates in raw_v2i_rates_all.items():
         # Calculate the mean raw V2I rates over intervals of 250 steps
@@ -77,12 +83,13 @@ def main(_):
 
         # Create x values for plotting
         x_values = np.arange(len(mean_raw_v2i_rates)) * 250 + (250 / 2)  # Midpoint of each interval
-        plt.plot(x_values, mean_raw_v2i_rates, label=f'{n_vehicles} Vehicles')
+        plt.plot(x_values[:max_interval_index], mean_raw_v2i_rates[:max_interval_index], label=f'{n_vehicles} Vehicles')
 
     plt.xlabel('Time Step')
     plt.ylabel('Mean Raw V2I Rate (bps)')
     plt.title('Mean Raw V2I Rate vs Time for Different Vehicle Counts')
-    plt.xlim(0, 2100)  # Limit x-axis to 1000 steps
+    plt.xlim(0, 1100)  # Limit x-axis to 1000 steps
+    plt.ylim(0,90)
     plt.legend()
     plt.grid(True)
     plt.savefig('mean_raw_v2i_rate_vs_time_multiple_vehicles.png')

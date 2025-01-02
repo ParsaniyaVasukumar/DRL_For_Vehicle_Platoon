@@ -11,7 +11,8 @@ from utils import save_pkl, load_pkl
 import tensorflow.compat.v1 as tf
 import matplotlib.pyplot as plt
 tf.compat.v1.disable_v2_behavior()
-
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 class Agent(BaseModel):
     
@@ -45,7 +46,6 @@ class Agent(BaseModel):
         self.V2V_number = 3 * len(self.env.vehicles)    # every vehicle need to communicate with 3 neighbors  
         self.training = True
         #self.actions_all = np.zeros([len(self.env.vehicles),3], dtype = 'int32')
-
         self.delay_satisfaction_list = []  # 1To store delay satisfaction probabilities
         self.num_vehicles_list = []        # To store the number of vehicles
         self.platoon_size_list = []        # To store the platoon sizes
@@ -53,6 +53,9 @@ class Agent(BaseModel):
         self.V2V_power_dB_List = self.env.V2V_power_dB_List  # Add this line
         # self.environment = environment  # Instance of the Environ class
         self.raw_v2i_rates_over_time = []  # New list to store raw V2I rates
+
+        self.num_vehicle = len(self.env.vehicles)
+        self.initialize_action_arrays()  # Initialize action arrays
 
        
     def merge_action(self, idx, action):
@@ -105,7 +108,7 @@ class Agent(BaseModel):
         self.memory.add(prestate, state, reward, action) # add the state and the action and the reward to the memory
         #print(self.step)
         if self.step > 0:
-            if self.step % 50 == 0:
+            if self.step % 20 == 0:
                 #print('Training')
                 self.q_learning_mini_batch()            # training a mini batch
                 self.save_weight_to_pkl()
@@ -125,7 +128,7 @@ class Agent(BaseModel):
         time_steps = []
 
         self.env.new_random_game(20)
-        for self.step in (range(0, 2000)): # need more configuration
+        for self.step in (range(0, 500)): # need more configuration
             if self.step == 0:                   # initialize set some varibles
                 num_game, self.update_count,ep_reward = 0, 0, 0.
                 total_reward, self.total_loss, self.total_q = 0., 0., 0.
@@ -133,7 +136,7 @@ class Agent(BaseModel):
 
             # prediction
             # action = self.predict(self.history.get())
-            if (self.step % 2000 == 1):
+            if (self.step % 500 == 1):
                 self.env.new_random_game(20)
             print(self.step)
             state_old = self.get_state([0,0])
@@ -146,13 +149,16 @@ class Agent(BaseModel):
                         action = self.predict(state_old, self.step)                    
                         #self.merge_action([i,j], action)   
                         self.action_all_with_power_training[i, j, 0] = action % self.RB_number
-                        self.action_all_with_power_training[i, j, 1] = int(np.floor(action/self.RB_number))                                                    
-                        reward_train,raw_V2I_rate = self.env.act_for_training(self.action_all_with_power_training, [i,j]) 
+                        self.action_all_with_power_training[i, j, 1] = int(np.floor(action/self.RB_number))                                                      
+                        # Collect true and predicted labels
+                        reward_train, raw_V2I_rate = self.env.act_for_training(self.action_all_with_power_training, [i, j])
                         state_new = self.get_state([i,j]) 
                         self.observe(state_old, state_new, reward_train, action)
                         # Store raw V2I rate
                         self.raw_v2i_rates_over_time.append(raw_V2I_rate)
-            if (self.step % 2000 == 0) and (self.step > 0):
+
+
+            if (self.step % 500 == 0) and (self.step > 0):
                 # testing 
                 self.training = False
                 number_of_game = 10
@@ -199,7 +205,7 @@ class Agent(BaseModel):
 
         # After training, plot and save the graphs
         # self.plot_v2i_rate_vs_time(v2i_rates_over_time, time_steps)
-        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=2000, interval=250)
+        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=500, interval=250)
                   
     def q_learning_mini_batch(self):
 
@@ -264,6 +270,8 @@ class Agent(BaseModel):
             self.target_q, self.target_w = encoder(self.target_s_t)
             self.target_q_idx = tf.placeholder('int32', [None,None], 'output_idx')
             self.target_q_with_idx = tf.gather_nd(self.target_q, self.target_q_idx)
+            print(self.target_q , " this is target  Q")
+            print(self.target_q_idx , "this is target Q ID")
         with tf.variable_scope('pred_to_target'):
             self.t_w_input = {}
             self.t_w_assign_op = {}
@@ -295,12 +303,14 @@ class Agent(BaseModel):
 
     def calculate_power_probabilities(self, platoon):
         power_selection = np.zeros(len(self.V2V_power_dB_List))
+        total_active_links=0
         for vehicle in platoon:
             vehicle_index = self.env.vehicles.index(vehicle)
             for j in range(3):  # Assuming 3 V2V links per vehicle
                 if self.env.activate_links[vehicle_index, j]:
                     power_choice = self.action_all_with_power[vehicle_index, j, 1]
                     power_selection[power_choice] += 1
+                    total_active_links += 1
         total_active_links = np.sum(power_selection)
         if total_active_links > 0:
             power_selection /= total_active_links  # Normalize to get probabilities
@@ -379,7 +389,7 @@ class Agent(BaseModel):
         x_values = np.arange(num_intervals) * interval + (interval / 2)  # Midpoint of each interval
 
         plt.plot(x_values, mean_raw_v2i_rates, 'r-', marker='o')
-        plt.ylim(10,70)
+        plt.ylim(0,85)
         plt.xlabel('Time Step')
         plt.ylabel('Mean Raw V2I Rate (bps)')
         plt.title('Mean Raw V2I Rate vs Time (250-step intervals)')
@@ -488,6 +498,47 @@ class Agent(BaseModel):
         print('Mean of the V2I rate is that ', np.mean(V2I_Rate_list))
         print('Mean of Fail percent is that ', np.mean(Fail_percent_list))
         # print('Test Reward is ', np.mean(test_result))
+
+    def plot_power_vs_vehicle_count(self, vehicle_counts):
+        plt.figure(figsize=(12, 8))
+        
+        # Initialize the power selection probabilities list
+        self.power_probs_vehicle_count = []
+        
+        # Calculate power probabilities for each vehicle count
+        for n_vehicles in vehicle_counts:
+            self.env.n_Veh = n_vehicles  # Set the number of vehicles in the environment
+            self.env.new_random_game()  # Initialize a new random game
+            self.num_vehicle = len(self.env.vehicles)  # Update the number of vehicles
+            self.initialize_action_arrays()  # Reinitialize action arrays
+            power_selection = self.calculate_power_probabilities(self.env.vehicles)  # Calculate power probabilities
+            self.power_probs_vehicle_count.append(power_selection)
+        
+        self.power_probs_vehicle_count = np.array(self.power_probs_vehicle_count)
+
+        # Plotting
+        markers = ['o', 's', 'D']  # Using a variety of markers for different vehicle counts
+        for i in range(len(self.V2V_power_dB_List)):
+            plt.plot(vehicle_counts, 
+                    self.power_probs_vehicle_count[:, i],
+                    marker=markers[i % len(markers)], 
+                    linestyle='-', 
+                    label=f'Power {self.V2V_power_dB_List[i]} dB',
+                    alpha=0.75,   
+                    linewidth=2,   
+                    markersize=8)         
+        
+        plt.xlabel("Number of Vehicles", fontsize=14)
+        plt.ylabel("Power Selection Probability", fontsize=14)
+        plt.title("Power Selection Probability vs. Number of Vehicles", fontsize=16, fontweight='bold')
+        plt.xticks(vehicle_counts)  # Set the x-ticks
+        plt.legend(fontsize=12)  # Larger legend for better readability
+        plt.grid(True, linestyle='--', alpha=0.7)  # Adding dashed gridlines with some transparency
+        plt.tight_layout()  # Ensuring that the layout fits well in the figure
+        plt.savefig('power_vs_vehicle_count.png')  # Save the plot
+
+    def initialize_action_arrays(self):
+        self.action_all_with_power = np.zeros([self.num_vehicle, 3, 2], dtype='int32')
 
 def main(_):
 
