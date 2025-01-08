@@ -56,41 +56,90 @@ class Agent(BaseModel):
 
         self.num_vehicle = len(self.env.vehicles)
         self.initialize_action_arrays()  # Initialize action arrays
+        self.predicted_v2i_rates_over_time = []  # Add this line to initialize the list
 
        
     def merge_action(self, idx, action):
+        
         self.action_all_with_power[idx[0], idx[1], 0] = action % self.RB_number
         self.action_all_with_power[idx[0], idx[1], 1] = int(np.floor(action/self.RB_number))
+
     def get_state(self, idx):
-    # ===============
-    #  Get State from the environment
-    # =============
+        # ===============
+        #  Get State from the environment
+        # =============
         vehicle_number = len(self.env.vehicles)
-        V2V_channel = (self.env.V2V_channels_with_fastfading[idx[0],self.env.vehicles[idx[0]].destinations[idx[1]],:] - 80)/60
-        V2I_channel = (self.env.V2I_channels_with_fastfading[idx[0], :] - 80)/60
-        V2V_interference = (-self.env.V2V_Interference_all[idx[0],idx[1],:] - 60)/60
+        V2V_channel = (self.env.V2V_channels_with_fastfading[idx[0], self.env.vehicles[idx[0]].destinations[idx[1]], :] - 80) / 60
+        V2I_channel = (self.env.V2I_channels_with_fastfading[idx[0], :] - 80) / 60
+        V2V_interference = (-self.env.V2V_Interference_all[idx[0], idx[1], :] - 60) / 60
         NeiSelection = np.zeros(self.RB_number)
+
         for i in range(3):
-            for j in range(3):
-                if self.training:
-                    NeiSelection[self.action_all_with_power_training[self.env.vehicles[idx[0]].neighbors[i], j, 0 ]] = 1
-                else:
-                    NeiSelection[self.action_all_with_power[self.env.vehicles[idx[0]].neighbors[i], j, 0 ]] = 1
-                   
+            if idx[0] < len(self.env.vehicles):
+                neighbor_idx = self.env.vehicles[idx[0]].neighbors[i]
+                if 0 <= neighbor_idx < len(self.env.vehicles):  # Ensure neighbor index is valid
+                    if self.training:
+                        action_index = min(neighbor_idx, self.action_all_with_power_training.shape[0] - 1)
+                        action_index = self.action_all_with_power_training[action_index, idx[1], 0]                        
+                        if 0 <= action_index < self.RB_number:  # Ensure action index is valid
+                            NeiSelection[action_index] = 1
+                    else:
+                        action_index = self.action_all_with_power[neighbor_idx, idx[1], 0]
+                        action_index = min(action_index, self.RB_number - 1)  # Ensure action index is valid
+                        NeiSelection[action_index] = 1
+
         for i in range(3):
             if i == idx[1]:
                 continue
-            if self.training:
-                if self.action_all_with_power_training[idx[0],i,0] >= 0:
-                    NeiSelection[self.action_all_with_power_training[idx[0],i,0]] = 1
-            else:
-                if self.action_all_with_power[idx[0],i,0] >= 0:
-                    NeiSelection[self.action_all_with_power[idx[0],i,0]] = 1
-        time_remaining = np.asarray([self.env.demand[idx[0],idx[1]] / self.env.demand_amount])
-        load_remaining = np.asarray([self.env.individual_time_limit[idx[0],idx[1]] / self.env.V2V_limit])
-        #print('shapes', time_remaining.shape,load_remaining.shape)
-        return np.concatenate((V2I_channel, V2V_interference, V2V_channel, NeiSelection, time_remaining, load_remaining))#,time_remaining))
-        #return np.concatenate((V2I_channel, V2V_interference, V2V_channel, time_remaining, load_remaining))#,time_remaining))
+            if idx[0] < len(self.env.vehicles):
+                if idx[0] < self.action_all_with_power_training.shape[0]:  # Check if idx[0] is within bounds
+                    if self.training:
+                        if self.action_all_with_power_training[idx[0], i, 0] >= 0:
+                            action_index = self.action_all_with_power_training[idx[0], i, 0]
+                            if 0 <= action_index < self.RB_number:  # Ensure action index is valid
+                                NeiSelection[action_index] = 1
+                    else:
+                        if self.action_all_with_power[idx[0], i, 0] >= 0:
+                            action_index = self.action_all_with_power[idx[0], i, 0]
+                            action_index = min(action_index, self.RB_number - 1)  # Ensure action index is valid
+                            NeiSelection[action_index] = 1
+
+        time_remaining = np.asarray([self.env.demand[idx[0], idx[1]] / self.env.demand_amount])
+        load_remaining = np.asarray([self.env.individual_time_limit[idx[0], idx[1]] / self.env.V2V_limit])
+        return np.concatenate((V2I_channel, V2V_interference, V2V_channel, NeiSelection, time_remaining, load_remaining))
+
+
+    # def get_state(self, idx):
+    # # ===============
+    # #  Get State from the environment
+    # # =============
+    #     vehicle_number = len(self.env.vehicles)
+    #     V2V_channel = (self.env.V2V_channels_with_fastfading[idx[0],self.env.vehicles[idx[0]].destinations[idx[1]],:] - 80)/60
+    #     V2I_channel = (self.env.V2I_channels_with_fastfading[idx[0], :] - 80)/60
+    #     V2V_interference = (-self.env.V2V_Interference_all[idx[0],idx[1],:] - 60)/60
+    #     NeiSelection = np.zeros(self.RB_number)
+    #     for i in range(3):
+    #         for j in range(3):
+    #             if self.training:
+    #                 NeiSelection[self.action_all_with_power_training[self.env.vehicles[idx[0]].neighbors[i], j, 0 ]] = 1
+    #             else:
+    #                 NeiSelection[self.action_all_with_power[self.env.vehicles[idx[0]].neighbors[i], j, 0 ]] = 1
+                   
+    #     for i in range(3):
+    #         if i == idx[1]:
+    #             continue
+    #         if self.training:
+    #             if self.action_all_with_power_training[idx[0],i,0] >= 0:
+    #                 NeiSelection[self.action_all_with_power_training[idx[0],i,0]] = 1
+    #         else:
+    #             if self.action_all_with_power[idx[0],i,0] >= 0:
+    #                 NeiSelection[self.action_all_with_power[idx[0],i,0]] = 1
+    #     time_remaining = np.asarray([self.env.demand[idx[0],idx[1]] / self.env.demand_amount])
+    #     load_remaining = np.asarray([self.env.individual_time_limit[idx[0],idx[1]] / self.env.V2V_limit])
+    #     #print('shapes', time_remaining.shape,load_remaining.shape)
+    #     return np.concatenate((V2I_channel, V2V_interference, V2V_channel, NeiSelection, time_remaining, load_remaining))#,time_remaining))
+    #     #return np.concatenate((V2I_channel, V2V_interference, V2V_channel, time_remaining, load_remaining))#,time_remaining))
+
     def predict(self, s_t,  step, test_ep = False):
         # ==========================
         #  Select actions
@@ -140,6 +189,7 @@ class Agent(BaseModel):
                 self.env.new_random_game(20)
             print(self.step)
             state_old = self.get_state([0,0])
+            
             #print("state", state_old)
             self.training = True
             for k in range(1):
@@ -151,7 +201,7 @@ class Agent(BaseModel):
                         self.action_all_with_power_training[i, j, 0] = action % self.RB_number
                         self.action_all_with_power_training[i, j, 1] = int(np.floor(action/self.RB_number))                                                      
                         # Collect true and predicted labels
-                        reward_train, raw_V2I_rate = self.env.act_for_training(self.action_all_with_power_training, [i, j])
+                        reward_train, raw_V2I_rate, predicted_V2I_rate = self.env.act_for_training(self.action_all_with_power_training, [i, j])
                         state_new = self.get_state([i,j]) 
                         self.observe(state_old, state_new, reward_train, action)
                         # Store raw V2I rate
@@ -196,12 +246,16 @@ class Agent(BaseModel):
                 self.save_weight_to_pkl()
                 print ('The number of vehicle is ', len(self.env.vehicles))
                 print ('Mean of the V2I rate is that ', np.mean(V2I_Rate_list))
-                print('Mean of Fail percent is that ', np.mean(Fail_percent_list))                   
+                print('Mean of Fail percent is that ', np.mean(Fail_percent_list)) 
+                print(state_old , "this is state old")                  
                 #print('Test Reward is ', np.mean(test_result))
+                print(state_old , self.step ) # this is fucking answer       
+
 
             # Collect V2I rate data (reward_train is the combination of V2I and V2V rate)
             v2i_rates_over_time.append(np.mean(reward_train))
             time_steps.append(self.step)
+
 
         # After training, plot and save the graphs
         # self.plot_v2i_rate_vs_time(v2i_rates_over_time, time_steps)
@@ -270,15 +324,16 @@ class Agent(BaseModel):
             self.target_q, self.target_w = encoder(self.target_s_t)
             self.target_q_idx = tf.placeholder('int32', [None,None], 'output_idx')
             self.target_q_with_idx = tf.gather_nd(self.target_q, self.target_q_idx)
-            print(self.target_q , " this is target  Q")
-            print(self.target_q_idx , "this is target Q ID")
+            print(self.target_q , " this is target  Q") # changed here
+            print(self.target_q_idx , "this is target Q ID") # changed here
         with tf.variable_scope('pred_to_target'):
             self.t_w_input = {}
             self.t_w_assign_op = {}
             for name in self.w.keys():
                 print('name in self w keys', name)
                 self.t_w_input[name] = tf.placeholder('float32', self.target_w[name].get_shape().as_list(),name = name)
-                self.t_w_assign_op[name] = self.target_w[name].assign(self.t_w_input[name])       
+                self.t_w_assign_op[name] = self.target_w[name].assign(self.t_w_input[name])   
+                    
         
         def clipped_error(x):
             try:
@@ -499,6 +554,11 @@ class Agent(BaseModel):
         print('Mean of Fail percent is that ', np.mean(Fail_percent_list))
         # print('Test Reward is ', np.mean(test_result))
 
+        self.plot_interference_heatmap()
+        self.plot_resource_block_utilization()
+        self.plot_v2i_rate_distribution(V2I_Rate_list)
+        self.plot_failure_probability(Fail_percent_list)
+
     def plot_power_vs_vehicle_count(self, vehicle_counts):
         plt.figure(figsize=(12, 8))
         
@@ -540,15 +600,74 @@ class Agent(BaseModel):
     def initialize_action_arrays(self):
         self.action_all_with_power = np.zeros([self.num_vehicle, 3, 2], dtype='int32')
 
+    def plot_resource_block_utilization(self):
+    # Adjust resource_block_usage computation to match self.RB_number
+        resource_block_usage = np.sum(self.action_all_with_power[:, :, 0] >= 0, axis=0)
+        
+        # Check the length of resource_block_usage and self.RB_number
+        if len(resource_block_usage) != self.RB_number:
+            print(f"Shape mismatch: resource_block_usage has length {len(resource_block_usage)}, "
+                f"but self.RB_number is {self.RB_number}. Adjusting...")
+            # If there's a mismatch, pad or truncate resource_block_usage
+            if len(resource_block_usage) < self.RB_number:
+                # Pad with zeros if resource_block_usage is smaller
+                resource_block_usage = np.pad(resource_block_usage, 
+                                            (0, self.RB_number - len(resource_block_usage)),
+                                            constant_values=0)
+            else:
+                # Truncate if resource_block_usage is larger
+                resource_block_usage = resource_block_usage[:self.RB_number]
+        
+        # Plotting
+        plt.figure()
+        plt.bar(range(self.RB_number), resource_block_usage, color='purple', alpha=0.6)
+        plt.xlabel("Resource Block Index")
+        plt.ylabel("Usage Count")
+        plt.title("Resource Block Utilization")
+        plt.grid()
+        plt.savefig("resource_block_utilization.png")
+        print("Saved plot: resource_block_utilization.png")
+
+    def plot_v2i_rate_distribution(self, V2I_Rate_list):
+        plt.figure()
+        plt.hist(V2I_Rate_list, bins=20, color='blue', alpha=0.7)
+        plt.xlabel("V2I Rate (Mbps)")
+        plt.ylabel("Frequency")
+        plt.title("Distribution of V2I Rates")
+        plt.grid()
+        plt.savefig("V2I_rate_distribution.png")
+        print("Saved plot: V2I_rate_distribution.png")
+
+    def plot_failure_probability(self, Fail_percent_list):
+        plt.figure()
+        plt.plot(range(len(Fail_percent_list)), Fail_percent_list, marker='o')
+        plt.xlabel("Game Index")
+        plt.ylabel("Failure Probability")
+        plt.ylim(0, 0.060)
+        plt.title("Failure Probability Over Games")
+        plt.grid()
+        plt.savefig("failure_probability_over_games.png")
+        print("Saved plot: failure_probability_over_games.png")
+
+    def plot_interference_heatmap(self):
+        plt.figure()
+        plt.imshow(self.env.V2V_Interference, cmap='hot', interpolation='nearest')
+        plt.colorbar(label="Interference (dBm)")
+        plt.xlabel("Resource Blocks")
+        plt.ylabel("Vehicles")
+        plt.title("Interference Heatmap")
+        plt.savefig("interference_heatmap.png")
+        print("Saved plot: interference_heatmap.png")
+
 def main(_):
 
-  # up_lanes = [3.5/2,3.5/2 + 3.5,250+3.5/2, 250+3.5+3.5/2, 500+3.5/2, 500+3.5+3.5/2]
-  # down_lanes = [250-3.5-3.5/2,250-3.5/2,500-3.5-3.5/2,500-3.5/2,750-3.5-3.5/2,750-3.5/2]
+  up_lanes = [3.5/2,3.5/2 + 3.5,250+3.5/2, 250+3.5+3.5/2, 500+3.5/2, 500+3.5+3.5/2]
+  down_lanes = [250-3.5-3.5/2,250-3.5/2,500-3.5-3.5/2,500-3.5/2,750-3.5-3.5/2,750-3.5/2]
   left_lanes = [16-2,20-2,24-2]
   right_lanes = [2,2+4,2+8]
   width = 10000
   height = 24
-  Env = Environ(left_lanes,right_lanes, width, height) 
+  Env = Environ(down_lanes,up_lanes,left_lanes,right_lanes, width, height) 
   Env.new_random_game()
   Env.test_channel()
   # Assign vehicles to platoons (NEW FUNCTIONALITY)

@@ -115,7 +115,7 @@ class Vehicle:
 class Environ:
     # Enviroment Simulator: Provide states and rewards to agents. 
     # Evolve to new state based on the actions taken by the vehicles.
-    def __init__ (self, left_lane, right_lane, width, height, n_Veh=40):
+    def __init__ (self,down_lanes, up_lanes, left_lane, right_lane, width, height, n_Veh=40):
         self.timestep = 0.01
         # self.down_lanes = down_lane
         # self.up_lanes = up_lane
@@ -149,7 +149,24 @@ class Environ:
         self.platoons = []
         self.platoon_sizes = []
         self.activate_links = None  # This will be initialized later
+        self.predicted_v2i_rates_over_time = []
 
+    def get_current_state(self):
+        # Example: Create a state representation
+        state = []
+        for vehicle in self.vehicles:
+            # Append relevant state information for each vehicle
+            state.append([
+                vehicle.position[0],  # X position
+                vehicle.position[1],  # Y position
+                vehicle.velocity,      # Velocity
+                vehicle.direction,     # Direction
+                # Add other relevant attributes here
+            ])
+        
+        # Convert to a NumPy array or appropriate format
+        return np.array(state)
+    
     def create_platoons(self):
         # Randomly create platoons from existing vehicles
         self.platoons = []
@@ -581,12 +598,19 @@ class Environ:
         raw_V2I_reward = V2I_rewardlist[actions[idx[0], idx[1], 0] + 20 * actions[idx[0], idx[1], 1]]   
         V2V_reward = (V2V_rewardlist[actions[idx[0],idx[1], 0]+ 20*actions[idx[0],idx[1], 1]] -\
                      np.min(V2V_rewardlist))/(np.max(V2V_rewardlist) -np.min(V2V_rewardlist) + 0.000001)
+        
+        # Compute predicted V2I reward based on the model's output
+        predicted_V2I_reward = V2I_rewardlist  # Use the raw V2I reward as predicted for this example
+
+        # Append the predicted V2I reward to the list
+        self.predicted_v2i_rates_over_time.append(predicted_V2I_reward)  # Add this line
+
         lambdda = 0.1
         #print ("Reward", V2I_reward, V2V_reward, time_left)
         t = lambdda * V2I_reward + (1-lambdda) * V2V_reward
         #print("time left", time_left)
         #return t
-        return t - (self.V2V_limit - time_left)/self.V2V_limit, raw_V2I_reward
+        return t - (self.V2V_limit - time_left)/self.V2V_limit, raw_V2I_reward, predicted_V2I_reward
         
     def act_asyn(self, actions):
         self.n_step += 1
