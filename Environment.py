@@ -125,9 +125,9 @@ class Environ:
         self.height = height
         self.vehicles = []
         self.demands = []  
-        self.V2V_power_dB = 23 # dBm
-        self.V2I_power_dB = 23 # dBm
-        self.V2V_power_dB_List = [23, 10, 5]             # the power levels
+        self.V2V_power_dB = 36 # dBm
+        self.V2I_power_dB = 36 # dBm
+        self.V2V_power_dB_List = [36, 33, 23]             # the power levels
         #self.V2V_power = 10**(self.V2V_power_dB)
         #self.V2I_power = 10**(self.V2I_power_dB)
         self.sig2_dB = -114
@@ -662,7 +662,7 @@ class Environ:
 
         # Make sure V2V_power_dB_List is defined
         if not hasattr(self, 'V2V_power_dB_List'):
-            self.V2V_power_dB_List = [23, 10, 5]  # Example values, adjust as needed
+            self.V2V_power_dB_List = [36, 33, 23]  # Example values, adjust as needed
 if __name__ == "__main__":
     # up_lanes = [3.5/2,3.5/2 + 3.5,250+3.5/2, 250+3.5+3.5/2, 500+3.5/2, 500+3.5+3.5/2]
     # down_lanes = [250-3.5-3.5/2,250-3.5/2,500-3.5-3.5/2,500-3.5/2,750-3.5-3.5/2,750-3.5/2]

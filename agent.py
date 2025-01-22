@@ -157,7 +157,7 @@ class Agent(BaseModel):
         self.memory.add(prestate, state, reward, action) # add the state and the action and the reward to the memory
         #print(self.step)
         if self.step > 0:
-            if self.step % 20 == 0:
+            if self.step % 50 == 0:
                 #print('Training')
                 self.q_learning_mini_batch()            # training a mini batch
                 self.save_weight_to_pkl()
@@ -177,7 +177,7 @@ class Agent(BaseModel):
         time_steps = []
 
         self.env.new_random_game(20)
-        for self.step in (range(0, 500)): # need more configuration
+        for self.step in (range(0, 8000)): # need more configuration
             if self.step == 0:                   # initialize set some varibles
                 num_game, self.update_count,ep_reward = 0, 0, 0.
                 total_reward, self.total_loss, self.total_q = 0., 0., 0.
@@ -185,7 +185,7 @@ class Agent(BaseModel):
 
             # prediction
             # action = self.predict(self.history.get())
-            if (self.step % 500 == 1):
+            if (self.step % 8000 == 1):
                 self.env.new_random_game(20)
             print(self.step)
             state_old = self.get_state([0,0])
@@ -208,10 +208,10 @@ class Agent(BaseModel):
                         self.raw_v2i_rates_over_time.append(raw_V2I_rate)
 
 
-            if (self.step % 500 == 0) and (self.step > 0):
+            if (self.step % 8000 == 0) and (self.step > 0):
                 # testing 
                 self.training = False
-                number_of_game = 10
+                number_of_game = 40
                 if (self.step % 10000 == 0) and (self.step > 0):
                     number_of_game = 50 
                 if (self.step == 38000):
@@ -220,7 +220,7 @@ class Agent(BaseModel):
                 Fail_percent_list = np.zeros(number_of_game)
                 for game_idx in range(number_of_game):
                     self.env.new_random_game(self.num_vehicle)
-                    test_sample = 50
+                    test_sample = 200
                     Rate_list = []
                     print('test game idx:', game_idx)
                     for k in range(test_sample):
@@ -259,7 +259,7 @@ class Agent(BaseModel):
 
         # After training, plot and save the graphs
         # self.plot_v2i_rate_vs_time(v2i_rates_over_time, time_steps)
-        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=500, interval=250)
+        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=8000, interval=500)
                   
     def q_learning_mini_batch(self):
 
@@ -425,7 +425,7 @@ class Agent(BaseModel):
     #     plt.grid(True)
     #     plt.savefig('v2i_rate_vs_time.png')
 
-    def plot_raw_v2i_rate_vs_time(self, raw_v2i_rates, num_steps=None, interval=250):
+    def plot_raw_v2i_rate_vs_time(self, raw_v2i_rates, num_steps=None, interval=500):
         plt.figure(figsize=(10, 6))
 
         # If num_steps is specified, slice the raw_v2i_rates
@@ -447,7 +447,7 @@ class Agent(BaseModel):
         plt.ylim(0,85)
         plt.xlabel('Time Step')
         plt.ylabel('Mean Raw V2I Rate (bps)')
-        plt.title('Mean Raw V2I Rate vs Time (250-step intervals)')
+        plt.title('Mean Raw V2I Rate vs Time (500-step intervals)')
         plt.grid(True)
         plt.savefig('mean_raw_v2i_rate_vs_time.png')
         # plt.show()  # Show the plot
@@ -476,7 +476,7 @@ class Agent(BaseModel):
     
     image_counter = 0  
     def play(self, n_step = 100, n_episode = 100, test_ep = None, render = False):
-        number_of_game = 10
+        number_of_game = 40
         V2I_Rate_list = np.zeros(number_of_game)
         Fail_percent_list = np.zeros(number_of_game)
         self.load_weight_from_pkl()
@@ -484,7 +484,7 @@ class Agent(BaseModel):
         
         for game_idx in range(number_of_game):
             self.env.new_random_game(self.num_vehicle)
-            test_sample = 50
+            test_sample = 200
             Rate_list = []
             print('test game idx:', game_idx)
             print('The number of vehicle is ', len(self.env.vehicles))
@@ -532,10 +532,10 @@ class Agent(BaseModel):
             p_1 = number_1 / (number_0 + number_1 + number_2)
             p_2 = number_2 / (number_0 + number_1 + number_2)
             plt.figure()
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Power Level 23 dB')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Power Level 10 dB')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Power Level 5 dB')
-            plt.xlim([0,0.12])
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Long Range Communication')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Medium Range Communication')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Short Range Communication')
+            # plt.xlim([0,0.12])
             plt.xlabel("Time left for V2V transmission (s)")
             plt.ylabel("Probability of power selection")
             plt.legend()
@@ -643,7 +643,7 @@ class Agent(BaseModel):
         plt.plot(range(len(Fail_percent_list)), Fail_percent_list, marker='o')
         plt.xlabel("Game Index")
         plt.ylabel("Failure Probability")
-        plt.ylim(0, 0.060)
+        plt.ylim(0, 0.050)
         plt.title("Failure Probability Over Games")
         plt.grid()
         plt.savefig("failure_probability_over_games.png")

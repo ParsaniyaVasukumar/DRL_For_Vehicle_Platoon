@@ -74,7 +74,7 @@ def main():
     sum_v2i_rates_drl = []
 
     n_values = [20, 40, 60, 80, 100]  # Different numbers of vehicles
-    number_of_game = 50
+    number_of_game = 40
     n_step = 100
 
     # Create the environment
