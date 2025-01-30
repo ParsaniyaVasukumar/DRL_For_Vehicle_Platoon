@@ -5,7 +5,9 @@ __pycache__/
 .vscode/
 
 # Ignore DRL folder
-drl/
+drl-metal/
 
 # Ignore weight folder
 weight/
+
+.DRL for Vehicle Platoon Communications

@@ -108,38 +108,6 @@ class Agent(BaseModel):
         load_remaining = np.asarray([self.env.individual_time_limit[idx[0], idx[1]] / self.env.V2V_limit])
         return np.concatenate((V2I_channel, V2V_interference, V2V_channel, NeiSelection, time_remaining, load_remaining))
 
-
-    # def get_state(self, idx):
-    # # ===============
-    # #  Get State from the environment
-    # # =============
-    #     vehicle_number = len(self.env.vehicles)
-    #     V2V_channel = (self.env.V2V_channels_with_fastfading[idx[0],self.env.vehicles[idx[0]].destinations[idx[1]],:] - 80)/60
-    #     V2I_channel = (self.env.V2I_channels_with_fastfading[idx[0], :] - 80)/60
-    #     V2V_interference = (-self.env.V2V_Interference_all[idx[0],idx[1],:] - 60)/60
-    #     NeiSelection = np.zeros(self.RB_number)
-    #     for i in range(3):
-    #         for j in range(3):
-    #             if self.training:
-    #                 NeiSelection[self.action_all_with_power_training[self.env.vehicles[idx[0]].neighbors[i], j, 0 ]] = 1
-    #             else:
-    #                 NeiSelection[self.action_all_with_power[self.env.vehicles[idx[0]].neighbors[i], j, 0 ]] = 1
-                   
-    #     for i in range(3):
-    #         if i == idx[1]:
-    #             continue
-    #         if self.training:
-    #             if self.action_all_with_power_training[idx[0],i,0] >= 0:
-    #                 NeiSelection[self.action_all_with_power_training[idx[0],i,0]] = 1
-    #         else:
-    #             if self.action_all_with_power[idx[0],i,0] >= 0:
-    #                 NeiSelection[self.action_all_with_power[idx[0],i,0]] = 1
-    #     time_remaining = np.asarray([self.env.demand[idx[0],idx[1]] / self.env.demand_amount])
-    #     load_remaining = np.asarray([self.env.individual_time_limit[idx[0],idx[1]] / self.env.V2V_limit])
-    #     #print('shapes', time_remaining.shape,load_remaining.shape)
-    #     return np.concatenate((V2I_channel, V2V_interference, V2V_channel, NeiSelection, time_remaining, load_remaining))#,time_remaining))
-    #     #return np.concatenate((V2I_channel, V2V_interference, V2V_channel, time_remaining, load_remaining))#,time_remaining))
-
     def predict(self, s_t,  step, test_ep = False):
         # ==========================
         #  Select actions
@@ -183,6 +151,7 @@ class Agent(BaseModel):
                 total_reward, self.total_loss, self.total_q = 0., 0., 0.
                 ep_reward, actions = [], []    
 
+            step_rewards = []  # Collect all rewards for the current step
             # prediction
             # action = self.predict(self.history.get())
             if (self.step % 8000 == 1):
@@ -206,7 +175,12 @@ class Agent(BaseModel):
                         self.observe(state_old, state_new, reward_train, action)
                         # Store raw V2I rate
                         self.raw_v2i_rates_over_time.append(raw_V2I_rate)
+                        step_rewards.append(reward_train)  # Collect each reward
 
+            # Calculate average reward for the current timestep and store
+            avg_reward = np.mean(step_rewards) if step_rewards else 0
+            v2i_rates_over_time.append(avg_reward)
+            time_steps.append(self.step)
 
             if (self.step % 8000 == 0) and (self.step > 0):
                 # testing 
@@ -249,14 +223,20 @@ class Agent(BaseModel):
                 print('Mean of Fail percent is that ', np.mean(Fail_percent_list)) 
                 print(state_old , "this is state old")                  
                 #print('Test Reward is ', np.mean(test_result))
-                print(state_old , self.step ) # this is fucking answer       
+                print(state_old , self.step )  
 
-
-            # Collect V2I rate data (reward_train is the combination of V2I and V2V rate)
-            v2i_rates_over_time.append(np.mean(reward_train))
-            time_steps.append(self.step)
-
-
+        # Plot the collected data after all steps
+        plt.figure(figsize=(10, 6))
+        plt.plot(time_steps, v2i_rates_over_time, label='Average Reward', color='blue', linestyle='-')
+        plt.xlabel('Time Step')
+        plt.ylabel('Average Reward')
+        plt.title('Average Reward vs. Time Step')
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig('reward_vs_time_step_all60.png')
+        plt.close()
+        
         # After training, plot and save the graphs
         # self.plot_v2i_rate_vs_time(v2i_rates_over_time, time_steps)
         self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=8000, interval=500)
@@ -416,15 +396,6 @@ class Agent(BaseModel):
         plt.tight_layout()  # Ensuring that the layout fits well in the figure
         plt.savefig('power_vs_platoon_size.png')
 
-    # def plot_v2i_rate_vs_time(self, v2i_rates, time_steps):
-    #     plt.figure(figsize=(10, 6))
-    #     plt.plot(time_steps, v2i_rates, 'b-')
-    #     plt.xlabel('Time Step')
-    #     plt.ylabel('V2I Rate (bps)')
-    #     plt.title('V2I Rate vs Time')
-    #     plt.grid(True)
-    #     plt.savefig('v2i_rate_vs_time.png')
-
     def plot_raw_v2i_rate_vs_time(self, raw_v2i_rates, num_steps=None, interval=500):
         plt.figure(figsize=(10, 6))
 
@@ -452,8 +423,6 @@ class Agent(BaseModel):
         plt.savefig('mean_raw_v2i_rate_vs_time.png')
         # plt.show()  # Show the plot
 
-
-        
     def update_target_q_network(self):    
         for name in self.w.keys():
             self.t_w_assign_op[name].eval({self.t_w_input[name]: self.w[name].eval()})       
@@ -540,7 +509,7 @@ class Agent(BaseModel):
             plt.ylabel("Probability of power selection")
             plt.legend()
             plt.grid()
-            plt.savefig('deepqnetwork.png')
+            plt.savefig('deepqnetwork60.png')
             
             V2I_Rate_list[game_idx] = np.mean(np.asarray(Rate_list))
             Fail_percent_list[game_idx] = percent

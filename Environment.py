@@ -104,6 +104,7 @@ class V2Ichannels:
         h = 1/np.sqrt(2) * (np.random.normal(size = (self.n_Veh, self.n_RB)) + 1j* np.random.normal(size = (self.n_Veh, self.n_RB)))
         self.FastFading = 20 * np.log10(np.abs(h))
 
+
 class Vehicle:
     # Vehicle simulator: include all the information for a vehicle
     def __init__(self, start_position, start_direction, velocity):
@@ -115,7 +116,7 @@ class Vehicle:
 class Environ:
     # Enviroment Simulator: Provide states and rewards to agents. 
     # Evolve to new state based on the actions taken by the vehicles.
-    def __init__ (self,down_lanes, up_lanes, left_lane, right_lane, width, height, n_Veh=40):
+    def __init__ (self,down_lanes, up_lanes, left_lane, right_lane, width, height, n_Veh=60):
         self.timestep = 0.01
         # self.down_lanes = down_lane
         # self.up_lanes = up_lane
@@ -237,7 +238,7 @@ class Environ:
                                 self.vehicles[i].position = [self.vehicles[i].position[0],self.left_lanes[0]]
                 
             i += 1
-    def test_channel(self,n_Veh=40):
+    def test_channel(self,n_Veh=60):
         # ===================================
         #   test the V2I and the V2V channel 
         # ===================================
