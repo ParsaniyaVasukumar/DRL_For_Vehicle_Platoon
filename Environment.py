@@ -116,7 +116,7 @@ class Vehicle:
 class Environ:
     # Enviroment Simulator: Provide states and rewards to agents. 
     # Evolve to new state based on the actions taken by the vehicles.
-    def __init__ (self,down_lanes, up_lanes, left_lane, right_lane, width, height, n_Veh=60):
+    def __init__ (self,down_lanes, up_lanes, left_lane, right_lane, width, height, n_Veh=40):
         self.timestep = 0.01
         # self.down_lanes = down_lane
         # self.up_lanes = up_lane
@@ -126,9 +126,9 @@ class Environ:
         self.height = height
         self.vehicles = []
         self.demands = []  
-        self.V2V_power_dB = 36 # dBm
-        self.V2I_power_dB = 36 # dBm
-        self.V2V_power_dB_List = [36, 33, 23]             # the power levels
+        self.V2V_power_dB = 45 # dBm
+        self.V2I_power_dB = 45 # dBm
+        self.V2V_power_dB_List = [45,30,10]             # the power levels
         #self.V2V_power = 10**(self.V2V_power_dB)
         #self.V2I_power = 10**(self.V2I_power_dB)
         self.sig2_dB = -114
@@ -238,7 +238,7 @@ class Environ:
                                 self.vehicles[i].position = [self.vehicles[i].position[0],self.left_lanes[0]]
                 
             i += 1
-    def test_channel(self,n_Veh=60):
+    def test_channel(self,n_Veh=40):
         # ===================================
         #   test the V2I and the V2V channel 
         # ===================================
@@ -663,7 +663,7 @@ class Environ:
 
         # Make sure V2V_power_dB_List is defined
         if not hasattr(self, 'V2V_power_dB_List'):
-            self.V2V_power_dB_List = [36, 33, 23]  # Example values, adjust as needed
+            self.V2V_power_dB_List = [45,30,10]  # Example values, adjust as needed
 if __name__ == "__main__":
     # up_lanes = [3.5/2,3.5/2 + 3.5,250+3.5/2, 250+3.5+3.5/2, 500+3.5/2, 500+3.5+3.5/2]
     # down_lanes = [250-3.5-3.5/2,250-3.5/2,500-3.5-3.5/2,500-3.5/2,750-3.5-3.5/2,750-3.5/2]

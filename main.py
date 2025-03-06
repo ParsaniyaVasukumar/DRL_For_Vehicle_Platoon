@@ -108,10 +108,10 @@ def main(_):
     plt.ylabel('Mean Raw V2I Rate (bps)', fontsize=10)
     plt.title('Mean Raw V2I Rate vs Time for Different Vehicle Counts', fontsize=16)
     plt.xlim(0, 8100)  # Limit x-axis to 1000 steps
-    plt.ylim(0, 90)
+    plt.ylim(0, 100)
     plt.legend(loc="best")
     plt.grid(True)
-    plt.savefig('mean_raw_v2i_rate_vs_time_multiple_vehicles.png')
+    plt.savefig('mean_raw_v2i_rate_vs_time_multiple_vehicles(45,30,10).png', dpi=300)
 
 if __name__ == '__main__':
     tf.compat.v1.app.run()

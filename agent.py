@@ -234,7 +234,7 @@ class Agent(BaseModel):
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('reward_vs_time_step_all60.png')
+        plt.savefig('reward_vs_time_step_all.png', dpi=300)
         plt.close()
         
         # After training, plot and save the graphs
@@ -394,7 +394,7 @@ class Agent(BaseModel):
         plt.legend(fontsize=12)  # Larger legend for better readability
         plt.grid(True, linestyle='--', alpha=0.7)  # Adding dashed gridlines with some transparency
         plt.tight_layout()  # Ensuring that the layout fits well in the figure
-        plt.savefig('power_vs_platoon_size.png')
+        plt.savefig('power_vs_platoon_size40(45,30,10).png', dpi=300)
 
     def plot_raw_v2i_rate_vs_time(self, raw_v2i_rates, num_steps=None, interval=500):
         plt.figure(figsize=(10, 6))
@@ -420,7 +420,7 @@ class Agent(BaseModel):
         plt.ylabel('Mean Raw V2I Rate (bps)')
         plt.title('Mean Raw V2I Rate vs Time (500-step intervals)')
         plt.grid(True)
-        plt.savefig('mean_raw_v2i_rate_vs_time.png')
+        plt.savefig('mean_raw_v2i_rate_vs_time.png', dpi=300)
         # plt.show()  # Show the plot
 
     def update_target_q_network(self):    
@@ -501,15 +501,15 @@ class Agent(BaseModel):
             p_1 = number_1 / (number_0 + number_1 + number_2)
             p_2 = number_2 / (number_0 + number_1 + number_2)
             plt.figure()
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Long Range Communication')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Medium Range Communication')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Short Range Communication')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Power Level 45 db')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Power Level 30 db')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Power Level 10 db')
             # plt.xlim([0,0.12])
             plt.xlabel("Time left for V2V transmission (s)")
             plt.ylabel("Probability of power selection")
             plt.legend()
             plt.grid()
-            plt.savefig('deepqnetwork60.png')
+            plt.savefig('deepqnetwork40(45,30,10).png', dpi=300)
             
             V2I_Rate_list[game_idx] = np.mean(np.asarray(Rate_list))
             Fail_percent_list[game_idx] = percent
@@ -564,7 +564,7 @@ class Agent(BaseModel):
         plt.legend(fontsize=12)  # Larger legend for better readability
         plt.grid(True, linestyle='--', alpha=0.7)  # Adding dashed gridlines with some transparency
         plt.tight_layout()  # Ensuring that the layout fits well in the figure
-        plt.savefig('power_vs_vehicle_count.png')  # Save the plot
+        plt.savefig('power_vs_vehicle_count40(45,30,10).png', dpi=300)  # Save the plot
 
     def initialize_action_arrays(self):
         self.action_all_with_power = np.zeros([self.num_vehicle, 3, 2], dtype='int32')
@@ -594,7 +594,7 @@ class Agent(BaseModel):
         plt.ylabel("Usage Count")
         plt.title("Resource Block Utilization")
         plt.grid()
-        plt.savefig("resource_block_utilization.png")
+        plt.savefig("resource_block_utilization.png", dpi=300)
         print("Saved plot: resource_block_utilization.png")
 
     def plot_v2i_rate_distribution(self, V2I_Rate_list):
@@ -604,7 +604,7 @@ class Agent(BaseModel):
         plt.ylabel("Frequency")
         plt.title("Distribution of V2I Rates")
         plt.grid()
-        plt.savefig("V2I_rate_distribution.png")
+        plt.savefig("V2I_rate_distribution.png", dpi=300)
         print("Saved plot: V2I_rate_distribution.png")
 
     def plot_failure_probability(self, Fail_percent_list):
@@ -615,7 +615,7 @@ class Agent(BaseModel):
         plt.ylim(0, 0.050)
         plt.title("Failure Probability Over Games")
         plt.grid()
-        plt.savefig("failure_probability_over_games.png")
+        plt.savefig("failure_probability_over_games.png", dpi=300)
         print("Saved plot: failure_probability_over_games.png")
 
     def plot_interference_heatmap(self):
@@ -625,10 +625,11 @@ class Agent(BaseModel):
         plt.xlabel("Resource Blocks")
         plt.ylabel("Vehicles")
         plt.title("Interference Heatmap")
-        plt.savefig("interference_heatmap.png")
+        plt.savefig("interference_heatmap.png", dpi=300)
         print("Saved plot: interference_heatmap.png")
 
 def main(_):
+  Agent.plot_power_vs_vehicle_count([30 , 40 , 50])
 
   up_lanes = [3.5/2,3.5/2 + 3.5,250+3.5/2, 250+3.5+3.5/2, 500+3.5/2, 500+3.5+3.5/2]
   down_lanes = [250-3.5-3.5/2,250-3.5/2,500-3.5-3.5/2,500-3.5/2,750-3.5-3.5/2,750-3.5/2]
@@ -653,6 +654,7 @@ def main(_):
       agent.reset()  # Reset the agent's state for each episode
 
       for step in range(max_steps):
+        print("this function is working !")
         actions = agent.choose_action()  # Agent selects actions
         reward = Env.step(actions)  # Environment processes the actions and returns reward
         agent.learn(reward)  # Agent learns based on the reward
